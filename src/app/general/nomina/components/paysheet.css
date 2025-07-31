@@ -1,0 +1,92 @@
+/* Animaciones específicas para collapsibles del paysheet */
+@keyframes paysheet-collapsible-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes paysheet-collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* Aplicar animaciones con overflow hidden */
+.paysheet-collapsible-down {
+  overflow: hidden;
+  animation: paysheet-collapsible-down 0.3s ease-out;
+}
+
+.paysheet-collapsible-up {
+  overflow: hidden;
+  animation: paysheet-collapsible-up 0.3s ease-out;
+}
+
+/* Asegurar que el CollapsibleContent tenga las propiedades necesarias */
+[data-slot="collapsible-content"] {
+  overflow: hidden;
+}
+
+/* Alternativa usando data attributes para mejor compatibilidad */
+[data-state="open"].paysheet-collapsible {
+  animation: paysheet-collapsible-down 0.3s ease-out;
+  overflow: hidden;
+}
+
+[data-state="closed"].paysheet-collapsible {
+  animation: paysheet-collapsible-up 0.3s ease-out;
+  overflow: hidden;
+}
+
+/* Ocultar scrollbar solo en el paysheet */
+.paysheet-hide-scrollbar {
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none; /* Firefox */
+}
+
+.paysheet-hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
+/* Estilos para inputs seamless del paysheet */
+.paysheet-seamless-input {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  color: inherit !important;
+  line-height: inherit !important;
+}
+
+.paysheet-seamless-input:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+
+}
+
+/* Ocultar flechas de number inputs solo en paysheet */
+.paysheet-seamless-input[type="number"]::-webkit-outer-spin-button,
+.paysheet-seamless-input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.paysheet-seamless-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

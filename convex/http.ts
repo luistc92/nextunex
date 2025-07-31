@@ -1,8 +1,12 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
+import { registerCamundaHttpActions } from "./externalAPI/camunda";
 
 const http = httpRouter();
+
+
+registerCamundaHttpActions(http);
 
 // HTTP route for adding a task
 http.route({
@@ -30,8 +34,10 @@ http.route({
       }
 
       // Call the existing addTask mutation
-      await ctx.runMutation(api.tasks.addTask, {
+      await ctx.runMutation(api.internalAPI.tasks.addTask, {
         text: text.trim(),
+        type: "any",
+        asignee: "http"
       });
 
       // Return success response

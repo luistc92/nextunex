@@ -1,21 +1,24 @@
 "use client";
 
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
+import { api } from "../../../../../convex/_generated/api";
 import { useState } from "react";
-import type { Id } from "../../../../convex/_generated/dataModel";
 
 export function TaskManager() {
-  const tasks = useQuery(api.tasks.getTasks);
-  const addTask = useMutation(api.tasks.addTask);
-  const toggleTask = useMutation(api.tasks.toggleTask);
-  const deleteTask = useMutation(api.tasks.deleteTask);
+  const tasks = useQuery(api.internalAPI.tasks.getTasks);
+  const addTask = useMutation(api.internalAPI.tasks.addTask);
+  const toggleTask = useMutation(api.internalAPI.tasks.toggleTask);
+  const deleteTask = useMutation(api.internalAPI.tasks.deleteTask);
   const [newTask, setNewTask] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newTask.trim()) {
-      addTask({ text: newTask.trim() });
+      addTask({
+        text: newTask.trim(),
+        type: "any",
+        asignee: "general"
+      });
       setNewTask("");
     }
   };

@@ -1,7 +1,7 @@
-import { query, mutation } from "../../_generated/server";
+import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
 
-export const getReembolsos = query({
+export const getTasks = query({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("tasks").order("desc").collect();
@@ -9,12 +9,12 @@ export const getReembolsos = query({
 });
 
 export const addTask = mutation({
-  args: { 
-    type: v.union(v.literal("any"),v.literal("capturaDiesel")),
-    asignee: v.string(),
+  args: {
+    type: v.optional(v.union(v.literal("any"),v.literal("capturaDiesel"))),
+    asignee: v.optional(v.string()),
     text: v.string(),
     data: v.optional(v.union(v.object({
-        ejemplo: v.boolean(), 
+        ejemplo: v.boolean(),
       })))
    },
   handler: async (ctx, args) => {
@@ -22,10 +22,10 @@ export const addTask = mutation({
       text: args.text,
       isCompleted: false,
       createdAt: Date.now(),
-      asignee: args.asignee,
-      type: args.type,
+      asignee: args.asignee || "general",
+      type: args.type || "any",
       data: args.data
-      
+
     });
   },
 });
