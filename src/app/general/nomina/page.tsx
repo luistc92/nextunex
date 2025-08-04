@@ -14,7 +14,7 @@ export default function CleanPaysheetPage() {
   )
 
   return (
-    <div className="h-screen w-full bg-gray-50 dark:bg-black flex overflow-hidden">
+    <div className="h-full flex overflow-hidden">
       <EmployeeList
         employees={filteredEmployees}
         selectedEmployee={selectedEmployee}
