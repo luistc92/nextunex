@@ -1,7 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
-const isGeneralRoute = createRouteMatcher(['/general(.*)'])
+const isGeneralRoute = createRouteMatcher(['/app(.*)'])
 const isOperadorRoute = createRouteMatcher(['/operador(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
@@ -17,7 +17,7 @@ export default clerkMiddleware(async (auth, req) => {
   if(req.nextUrl.pathname === '/'){
     switch (role){
       case 'general':
-        return NextResponse.redirect(new URL('/general', req.url))
+        return NextResponse.redirect(new URL('/app', req.url))
       case 'operador':
         return NextResponse.redirect(new URL('/operador', req.url))
       default:

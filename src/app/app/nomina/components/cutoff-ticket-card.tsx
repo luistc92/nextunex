@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Separator } from "@/components/ui/separator"
 import { useState } from "react"
 import { ChevronRight, ChevronDown } from "lucide-react"
-import type { CutoffTicket } from "@/lib/data"
+import type { CutoffTicket } from "../lib/data"
 import "./paysheet.css"
 
 const formatCurrency = (amount: number) =>

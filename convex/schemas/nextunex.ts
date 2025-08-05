@@ -3,13 +3,13 @@ import { v } from "convex/values";
 
 export const nextunexSchema = {
   tasks: defineTable({
-    text: v.string(),
+    type: v.union(v.literal("subirReporteMovimientos")),
     isCompleted: v.boolean(),
     createdAt: v.number(),
     asignee: v.optional(v.string()),
-    type: v.optional(v.union(v.literal("any"),v.literal("capturaDiesel"))),
-    data: v.optional(v.union(v.object({
-        ejemplo: v.boolean(),
-      })))
+    data: v.optional(v.union(
+      v.object({
+        type: v.literal("subirReporteMovimientos"),
+    })))
   }),
-};
+};  

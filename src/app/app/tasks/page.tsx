@@ -1,4 +1,4 @@
-import { TaskManager } from "@/app/general/tasks/components/TaskManager";
+import { TaskManager } from "@/app/app/tasks/components/TaskManager";
 
 export default function TasksPage() {
   return (
