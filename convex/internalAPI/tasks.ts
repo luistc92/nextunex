@@ -1,5 +1,6 @@
 import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
+import {taskFields } from "../schemas/nextunex";
 
 export const getTasks = query({
   args: {},
@@ -9,22 +10,14 @@ export const getTasks = query({
 });
 
 export const addTask = mutation({
-  args: {
-    type: v.optional(v.union(v.literal("any"),v.literal("capturaDiesel"))),
-    asignee: v.optional(v.string()),
-    text: v.string(),
-    data: v.optional(v.union(v.object({
-        ejemplo: v.boolean(),
-      })))
-   },
+  args: taskFields,
   handler: async (ctx, args) => {
     await ctx.db.insert("tasks", {
-      text: args.text,
       isCompleted: false,
       createdAt: Date.now(),
       asignee: args.asignee || "general",
       type: args.type || "any",
-      data: args.data
+      variables: args.variables
 
     });
   },
@@ -44,5 +37,21 @@ export const deleteTask = mutation({
   args: { id: v.id("tasks") },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.id);
+  },
+});
+
+export const createTestTask = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await ctx.db.insert("tasks", {
+      type: "subirReporteMovimientos",
+      isCompleted: false,
+      createdAt: Date.now(),
+      asignee: "system",
+      variables: {
+        type: "subirReporteMovimientos",
+        testData: "This is a test task"
+      }
+    });
   },
 });

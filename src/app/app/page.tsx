@@ -1,10 +1,6 @@
 
-export default function GeneralDashboard() {
-  return (
-    <div className="p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Content will be added here later */}
-      </div>
-    </div>
-  );
+export default function AppPage() {
+  // This page is now handled entirely by the layout
+  // The layout renders the TaskSidebar and TaskFormRenderer
+  return null;
 }
