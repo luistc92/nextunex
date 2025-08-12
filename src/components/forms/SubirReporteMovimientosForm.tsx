@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation } from "convex/react";
-import { api } from "../../../../../convex/_generated/api";
+import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Upload, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface Task {
   _id: string;
-  type: "subirReporteMovimientos";
+  type: "subirReporteMovimientos" | "freight";
   isCompleted: boolean;
   createdAt: number;
   asignee?: string;

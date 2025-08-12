@@ -1,15 +1,13 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Circle, Clock, FileText, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckCircle2, Circle, Clock, FileText, Truck } from "lucide-react";
 
 interface Task {
   _id: string;
-  type: "subirReporteMovimientos";
+  type: "subirReporteMovimientos" | "freight";
   isCompleted: boolean;
   createdAt: number;
   asignee?: string;
@@ -23,12 +21,25 @@ interface TaskSidebarProps {
 
 export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) {
   const tasks = useQuery(api.internalAPI.tasks.getTasks) as Task[] | undefined;
-  const createTestTask = useMutation(api.internalAPI.tasks.createTestTask);
+
+  // Permanent tasks that are always available
+  const permanentTasks: Task[] = [
+    {
+      _id: "permanent-freight",
+      type: "freight",
+      isCompleted: false,
+      createdAt: Date.now(),
+      asignee: "system",
+      variables: {}
+    }
+  ];
 
   const getTaskIcon = (type: string) => {
     switch (type) {
       case "subirReporteMovimientos":
         return <FileText className="h-4 w-4" />;
+      case "freight":
+        return <Truck className="h-4 w-4" />;
       default:
         return <Circle className="h-4 w-4" />;
     }
@@ -38,6 +49,8 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
     switch (type) {
       case "subirReporteMovimientos":
         return "Subir Reporte de Movimientos";
+      case "freight":
+        return "Gestión de Fletes";
       default:
         return type;
     }
@@ -56,32 +69,12 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
   const completedTasks = tasks?.filter(task => task.isCompleted) || [];
 
   return (
-    <div className="w-80 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex-shrink-0">
+    <div className="h-full bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800">
       <div className="flex flex-col h-full">
-        {/* Sidebar Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-                Tareas Pendientes
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {pendingTasks.length} pendientes, {completedTasks.length} completadas
-              </p>
-            </div>
-            <Button
-              size="sm"
-              onClick={() => createTestTask()}
-              className="flex items-center"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Test
-            </Button>
-          </div>
-        </div>
+
         
         {/* Task List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0">
           {/* Pending Tasks */}
           {pendingTasks.length > 0 && (
             <div className="p-4">
@@ -95,7 +88,7 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
                     key={task._id}
                     onClick={() => onTaskSelect(task)}
                     className={cn(
-                      "w-full text-left p-3 rounded-lg border transition-colors",
+                      "w-full text-left p-3 rounded-lg border transition-colors cursor-pointer",
                       selectedTaskId === task._id
                         ? "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800"
                         : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -175,6 +168,41 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
               </p>
             </div>
           )}
+        </div>
+
+        {/* Permanent Tasks - Bottom */}
+        <div className="px-4 py-4 border-t-2 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20 flex-shrink-0">
+          <h3 className="text-xs font-medium text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-3">
+            Tareas Permanentes ({permanentTasks.length})
+          </h3>
+          <div className="space-y-2">
+            {permanentTasks.map((task) => (
+              <button
+                key={task._id}
+                onClick={() => onTaskSelect(task)}
+                className={cn(
+                  "w-full text-left p-3 rounded-lg border transition-colors cursor-pointer",
+                  selectedTaskId === task._id
+                    ? "bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 ring-2 ring-blue-500"
+                    : "bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/50"
+                )}
+              >
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 mt-0.5 text-blue-600">
+                    {getTaskIcon(task.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                      {getTaskTitle(task.type)}
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      Siempre disponible
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

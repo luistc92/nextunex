@@ -1,12 +1,12 @@
 "use client";
 
-import { SubirReporteMovimientosForm } from "./forms/SubirReporteMovimientosForm";
+import { SubirReporteMovimientosForm } from "../../../components/forms/SubirReporteMovimientosForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, FileQuestion } from "lucide-react";
 
 interface Task {
   _id: string;
-  type: "subirReporteMovimientos";
+  type: "subirReporteMovimientos" | "freight";
   isCompleted: boolean;
   createdAt: number;
   asignee?: string;
