@@ -9,16 +9,30 @@ export const getTasks = query({
   },
 });
 
+
 export const addTask = mutation({
   args: taskFields,
   handler: async (ctx, args) => {
     await ctx.db.insert("tasks", {
-      isCompleted: false,
-      createdAt: Date.now(),
-      asignee: args.asignee || "general",
-      type: args.type || "any",
-      variables: args.variables
+      // Camunda task properties
+      camundaId: args.camundaId,
+      name: args.name,
+      asignee: args.asignee,
+      processInstanceId: args.processInstanceId,
+      businessKey: args.businessKey,
+      candidateUsers: args.candidateUsers,
+      candidateGroups: args.candidateGroups,
+      processDefinitionId: args.processDefinitionId,
+      priority: args.priority,
+      formKey: args.formKey,
+      formRef: args.formRef,
+      taskDefinitionKey: args.taskDefinitionKey,
+      variables: args.variables,
 
+      // System properties
+      isCompleted: args.isCompleted ?? false,
+      createdAt: args.createdAt ?? Date.now(),
+      permanent: args.permanent ?? false
     });
   },
 });
@@ -40,18 +54,5 @@ export const deleteTask = mutation({
   },
 });
 
-export const createTestTask = mutation({
-  args: {},
-  handler: async (ctx) => {
-    await ctx.db.insert("tasks", {
-      type: "subirReporteMovimientos",
-      isCompleted: false,
-      createdAt: Date.now(),
-      asignee: "system",
-      variables: {
-        type: "subirReporteMovimientos",
-        testData: "This is a test task"
-      }
-    });
-  },
-});
+
+

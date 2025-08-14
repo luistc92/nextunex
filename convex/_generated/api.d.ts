@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as actions from "../actions.js";
 import type * as externalAPI_camunda from "../externalAPI/camunda.js";
 import type * as externalAPI_n8n from "../externalAPI/n8n.js";
 import type * as http from "../http.js";
@@ -31,6 +32,7 @@ import type * as schemas_operadoresunex from "../schemas/operadoresunex.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  actions: typeof actions;
   "externalAPI/camunda": typeof externalAPI_camunda;
   "externalAPI/n8n": typeof externalAPI_n8n;
   http: typeof http;

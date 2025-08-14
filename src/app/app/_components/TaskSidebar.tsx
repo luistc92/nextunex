@@ -4,35 +4,19 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Circle, Clock, FileText, Truck } from "lucide-react";
-
-interface Task {
-  _id: string;
-  type: "subirReporteMovimientos" | "freight";
-  isCompleted: boolean;
-  createdAt: number;
-  asignee?: string;
-  variables?: any;
-}
+import type { Doc } from "../../../../convex/_generated/dataModel";
 
 interface TaskSidebarProps {
   selectedTaskId: string | null;
-  onTaskSelect: (task: Task | null) => void;
+  onTaskSelect: (task: Doc<"tasks"> | null) => void;
 }
 
 export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) {
-  const tasks = useQuery(api.internalAPI.tasks.getTasks) as Task[] | undefined;
+  const tasks = useQuery(api.internalAPI.tasks.getTasks) as Doc<"tasks">[] | undefined;
 
-  // Permanent tasks that are always available
-  const permanentTasks: Task[] = [
-    {
-      _id: "permanent-freight",
-      type: "freight",
-      isCompleted: false,
-      createdAt: Date.now(),
-      asignee: "system",
-      variables: {}
-    }
-  ];
+  // Separate regular and permanent tasks
+  const regularTasks = tasks?.filter(task => !task.permanent) || [];
+  const permanentTasks = tasks?.filter(task => task.permanent) || [];
 
   const getTaskIcon = (type: string) => {
     switch (type) {
@@ -65,8 +49,8 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
     });
   };
 
-  const pendingTasks = tasks?.filter(task => !task.isCompleted) || [];
-  const completedTasks = tasks?.filter(task => task.isCompleted) || [];
+  const pendingTasks = regularTasks.filter(task => !task.isCompleted);
+  const completedTasks = regularTasks.filter(task => task.isCompleted);
 
   return (
     <div className="h-full bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800">
@@ -104,7 +88,7 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
                             {getTaskTitle(task.type)}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {formatDate(task.createdAt)}
+                            {formatDate(task.createdAt || task._creationTime)}
                           </p>
                           {task.asignee && (
                             <p className="text-xs text-gray-400 dark:text-gray-500">
@@ -144,7 +128,7 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
                             {getTaskTitle(task.type)}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                            {formatDate(task.createdAt)}
+                            {formatDate(task.createdAt || task._creationTime)}
                           </p>
                         </div>
                       </div>

@@ -8,18 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Upload, FileText, CheckCircle2, AlertCircle } from "lucide-react";
-
-interface Task {
-  _id: string;
-  type: "subirReporteMovimientos" | "freight";
-  isCompleted: boolean;
-  createdAt: number;
-  asignee?: string;
-  variables?: any;
-}
+import type { Doc } from "../../../convex/_generated/dataModel";
 
 interface SubirReporteMovimientosFormProps {
-  task: Task;
+  task: Doc<"tasks">;
   onTaskComplete?: () => void;
 }
 
@@ -62,8 +54,10 @@ export function SubirReporteMovimientosForm({ task, onTaskComplete }: SubirRepor
       // Simulate file upload (in a real app, you'd upload to a file storage service)
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Mark task as completed
-      await toggleTask({ id: task._id });
+      // Mark task as completed (only for non-permanent tasks)
+      if (!task.permanent) {
+        await toggleTask({ id: task._id });
+      }
       
       // Reset form
       setSelectedFile(null);
@@ -114,7 +108,7 @@ export function SubirReporteMovimientosForm({ task, onTaskComplete }: SubirRepor
               Esta tarea fue completada exitosamente.
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-              Completada el: {formatDate(task.createdAt)}
+              Completada el: {formatDate(task.createdAt || task._creationTime)}
             </p>
           </CardContent>
         </Card>
@@ -142,7 +136,7 @@ export function SubirReporteMovimientosForm({ task, onTaskComplete }: SubirRepor
                 Información de la Tarea
               </h3>
               <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <p>Creada: {formatDate(task.createdAt)}</p>
+                <p>Creada: {formatDate(task.createdAt || task._creationTime)}</p>
                 {task.asignee && <p>Asignado por: {task.asignee}</p>}
                 {task.variables && (
                   <p>Variables: {JSON.stringify(task.variables, null, 2)}</p>

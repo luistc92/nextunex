@@ -14,31 +14,53 @@ http.route({
       const body = await request.json();
       console.log(body)
 
-      const { type, variables } = body;
-
-      // Validate that type is provided
-      if (!type || type !== 'subirReporteMovimientos' || type.trim() === '') {
+      const { id, name, asignee, variables, processInstanceId, businessKey, candidateUsers, candidateGroups, processDefinitionId, eventName, priority, formKey, formRef, taskDefinitionKey } = body;
+      if(eventName != "create"){
         return new Response(
-          JSON.stringify({ error: "Task type is rnot subirReporteMovimientos" }),
+          JSON.stringify({ sucess: true, message: `Event ${eventName} received, nothing created` }),
           {
-            status: 400,
+            status: 200,
             headers: {
               "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*",
-              "Access-Control-Allow-Methods": "POST, OPTIONS",
-              "Access-Control-Allow-Headers": "Content-Type",
             },
           }
         );
       }
 
-      // Call the existing addTask mutation
+
+      if (!id || id.trim() === '') {
+        return new Response(
+          JSON.stringify({ error: "Id is not present or is Empty" }),
+          {
+            status: 400,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
+
+      // Call the existing addTask mutation with all Camunda fields
       await ctx.runMutation(api.internalAPI.tasks.addTask, {
-        type: type as "subirReporteMovimientos",
+        // Camunda task properties
+        camundaId: id,
+        name: name,
+        asignee: asignee,
+        processInstanceId: processInstanceId,
+        businessKey: businessKey,
+        candidateUsers: candidateUsers,
+        candidateGroups: candidateGroups,
+        processDefinitionId: processDefinitionId,
+        priority: priority,
+        formKey: formKey,
+        formRef: formRef,
+        taskDefinitionKey: taskDefinitionKey,
+        variables: variables,
+
+        // System properties
         isCompleted: false,
         createdAt: Date.now(),
-        asignee: "camunda",
-        variables: variables,
+        permanent: false
       });
 
       // Return success response
@@ -46,15 +68,17 @@ http.route({
         JSON.stringify({
           success: true,
           message: "Task added successfully",
-          task: { type: type, variables: variables }
+          task: {
+            camundaId: id,
+            name: name,
+            taskDefinitionKey: taskDefinitionKey,
+            variables: variables
+          }
         }),
         {
           status: 201,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*", // Allow CORS for development
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
           },
         }
       );
@@ -70,9 +94,6 @@ http.route({
           status: 500,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*", // Allow CORS for development
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
           },
         }
       );

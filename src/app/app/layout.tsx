@@ -3,21 +3,12 @@
 import { useState } from "react";
 import { TaskSidebar } from "./_components/TaskSidebar";
 import { TaskFormRenderer } from "./_components/TaskFormRenderer";
-import FreightPage from "./freight/page";
-
-interface Task {
-  _id: string;
-  type: "subirReporteMovimientos" | "freight";
-  isCompleted: boolean;
-  createdAt: number;
-  asignee?: string;
-  variables?: any;
-}
+import type { Doc } from "../../../convex/_generated/dataModel";
 
 export default function AppLayout() {
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Doc<"tasks"> | null>(null);
 
-  const handleTaskSelect = (task: Task | null) => {
+  const handleTaskSelect = (task: Doc<"tasks"> | null) => {
     setSelectedTask(task);
   };
 
@@ -26,57 +17,13 @@ export default function AppLayout() {
     setSelectedTask(null);
   };
 
-  const renderMainContent = () => {
-    if (!selectedTask) {
-      return (
-        <TaskFormRenderer
-          task={null}
-          onTaskComplete={handleTaskComplete}
-        />
-      );
-    }
 
-    switch (selectedTask.type) {
-      case "freight":
-        return <FreightPage />;
-      case "subirReporteMovimientos":
-      default:
-        return (
-          <TaskFormRenderer
-            task={selectedTask}
-            onTaskComplete={handleTaskComplete}
-          />
-        );
-    }
-  };
   const getPageTitle = () => {
-    if (!selectedTask) {
-      return "Panel de Tareas";
-    }
-
-    switch (selectedTask.type) {
-      case "freight":
-        return "Asignación de Fletes";
-      case "subirReporteMovimientos":
-        return "Formulario de Tarea";
-      default:
-        return "Formulario de Tarea";
-    }
+    return "Panel de Tareas";
   };
 
   const getPageSubtitle = () => {
-    if (!selectedTask) {
-      return null;
-    }
-
-    switch (selectedTask.type) {
-      case "freight":
-        return "Gestiona las asignaciones de fletes para las 18 unidades";
-      case "subirReporteMovimientos":
-        return "Subir Reporte de Movimientos";
-      default:
-        return null;
-    }
+    return "Sub"
   };
 
   return (
@@ -106,8 +53,11 @@ export default function AppLayout() {
         </nav>
 
         {/* Scrollable Main Content */}
-        <div className="flex-1 overflow-y-auto">
-          {renderMainContent()}
+        <div className="flex-1 overflow-y-auto p-6">
+          <TaskFormRenderer
+          task={selectedTask}
+          onTaskComplete={handleTaskComplete}
+          />
         </div>
       </div>
     </div>
