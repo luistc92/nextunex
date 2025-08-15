@@ -1,8 +1,6 @@
 "use client";
 
 import { TruckList } from "./_components/TruckList";
-import { Card, CardContent } from "@/components/ui/card";
-import { Truck, MapPin } from "lucide-react";
 
 // Mock data for trucks
 const trucks = [
@@ -28,7 +26,7 @@ const trucks = [
 
 export default function FreightPage() {
   return (
-    <div className="p-6">
+    <div className="">
       <div className="max-w-7xl mx-auto">
         {/* Truck List */}
         <TruckList trucks={trucks} />

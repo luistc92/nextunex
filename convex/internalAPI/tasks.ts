@@ -1,6 +1,6 @@
 import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
-import {taskFields } from "../schemas/nextunex";
+import {taskFields } from "../schemas/tasks";
 
 export const getTasks = query({
   args: {},

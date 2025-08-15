@@ -19,9 +19,9 @@ import type * as externalAPI_n8n from "../externalAPI/n8n.js";
 import type * as http from "../http.js";
 import type * as internalAPI_reembolsos from "../internalAPI/reembolsos.js";
 import type * as internalAPI_tasks from "../internalAPI/tasks.js";
-import type * as schemas_money from "../schemas/money.js";
-import type * as schemas_nextunex from "../schemas/nextunex.js";
-import type * as schemas_operadoresunex from "../schemas/operadoresunex.js";
+import type * as places from "../places.js";
+import type * as schemas_tasks from "../schemas/tasks.js";
+import type * as schemas_unex from "../schemas/unex.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -38,9 +38,9 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "internalAPI/reembolsos": typeof internalAPI_reembolsos;
   "internalAPI/tasks": typeof internalAPI_tasks;
-  "schemas/money": typeof schemas_money;
-  "schemas/nextunex": typeof schemas_nextunex;
-  "schemas/operadoresunex": typeof schemas_operadoresunex;
+  places: typeof places;
+  "schemas/tasks": typeof schemas_tasks;
+  "schemas/unex": typeof schemas_unex;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

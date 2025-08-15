@@ -1,9 +1,9 @@
 import { defineSchema } from "convex/server";
-import { operadoresSchema } from "./schemas/operadoresunex";
-import { nextunexSchema } from "./schemas/nextunex";
+import { tasksSchema } from "./schemas/tasks";
+import { unexSchema } from "./schemas/unex";
 
 
 export default defineSchema({
-  ...operadoresSchema,
-  ...nextunexSchema
+  ...tasksSchema,
+  ...unexSchema
 });

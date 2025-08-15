@@ -3,7 +3,8 @@ import "@/styles/globals.css";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ConvexClientProvider } from "./ConvexClientProvider";
-import {ClerkProvider} from '@clerk/nextjs'
+import { ClerkProvider } from '@clerk/nextjs';
+import { GoogleMapsProvider } from "@/components/providers/google-maps-provider";
 
 export const metadata: Metadata = {
   title: "Unex",
@@ -19,16 +20,23 @@ const geist = Geist({
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
   return (
     <ClerkProvider>
       <html lang="en" className={`${geist.variable}`}>
       <body>
         <ConvexClientProvider>
-          {children}
+          {googleMapsApiKey ? (
+            <GoogleMapsProvider apiKey={googleMapsApiKey}>
+              {children}
+            </GoogleMapsProvider>
+          ) : (
+            children
+          )}
         </ConvexClientProvider>
         </body>
       </html>
     </ClerkProvider>
-    
   );
 }

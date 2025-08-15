@@ -24,6 +24,6 @@ export const taskFields = {
     permanent: v.optional(v.boolean())
 }
 
-export const nextunexSchema = {
+export const tasksSchema = {
   tasks: defineTable(taskFields),
 };  

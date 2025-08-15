@@ -2,16 +2,14 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  MapPin, 
-  Package, 
-  Calendar, 
-  DollarSign, 
-  Weight, 
+import {
+  MapPin,
+  Package,
+  Calendar,
+  DollarSign,
+  Weight,
   Building2,
-  Circle,
-  ArrowDown,
-  Clock
+  Circle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,9 +37,10 @@ interface Freight {
 
 interface FreightCardProps {
   freight: Freight;
+  onEdit?: () => void;
 }
 
-export function FreightCard({ freight }: FreightCardProps) {
+export function FreightCard({ freight, onEdit }: FreightCardProps) {
   const getDestinationIcon = (type: string, index: number, total: number) => {
     if (type === "pickup") {
       return <Circle className="h-3 w-3 fill-green-500 text-green-500" />;
@@ -113,7 +112,13 @@ export function FreightCard({ freight }: FreightCardProps) {
   };
 
   return (
-    <Card className="border border-gray-200 dark:border-gray-700">
+    <Card
+      className={cn(
+        "border border-gray-200 dark:border-gray-700 transition-all duration-200",
+        onEdit && "cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md"
+      )}
+      onClick={onEdit}
+    >
       <CardContent className="p-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left Column - Destinations (Google Maps style) */}

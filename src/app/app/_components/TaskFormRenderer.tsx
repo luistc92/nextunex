@@ -17,7 +17,7 @@ interface TaskFormRendererProps {
 export function TaskFormRenderer({ task, onTaskComplete }: TaskFormRendererProps) {
   if (!task) {
     return (
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center">
         <div className="text-center max-w-md">
           <FileQuestion className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">

@@ -114,6 +114,7 @@ const mockFreights = {
 export function TruckList({ trucks }: TruckListProps) {
   const [freights, setFreights] = useState(mockFreights);
   const [addingFreightFor, setAddingFreightFor] = useState<string | null>(null);
+  const [editingFreight, setEditingFreight] = useState<{ truckId: string; freightId: string } | null>(null);
 
   const handleAddFreight = (truckId: string, newFreight: any) => {
     const freightWithId = {
@@ -127,6 +128,42 @@ export function TruckList({ trucks }: TruckListProps) {
     }));
 
     setAddingFreightFor(null);
+  };
+
+  const handleEditFreight = (truckId: string, freightId: string, updatedFreight: any) => {
+    setFreights(prev => ({
+      ...prev,
+      [truckId]: (prev[truckId as keyof typeof prev] || []).map(freight =>
+        freight.id === freightId ? { ...updatedFreight, id: freightId } : freight
+      )
+    }));
+
+    setEditingFreight(null);
+  };
+
+  const getFreightForEditing = (truckId: string, freightId: string) => {
+    const truckFreights = freights[truckId as keyof typeof freights] || [];
+    const freight = truckFreights.find(freight => freight.id === freightId);
+
+    if (!freight) return undefined;
+
+    // Create a mutable copy for editing
+    return {
+      destinations: freight.destinations.map(dest => ({
+        id: dest.id,
+        name: dest.name,
+        address: dest.address,
+        type: dest.type
+      })),
+      details: {
+        freightNumber: freight.details.freightNumber,
+        client: freight.details.client,
+        weight: freight.details.weight,
+        value: freight.details.value,
+        priority: freight.details.priority,
+        estimatedDelivery: freight.details.estimatedDelivery
+      }
+    };
   };
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -155,20 +192,21 @@ export function TruckList({ trucks }: TruckListProps) {
   };
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700 dark:text-gray-300 w-80">
-                  Unidad
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Fletes Asignados
-                </th>
-              </tr>
-            </thead>
+    <>
+      <Card className="py-0">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th className="px-6 py-4 text-center text-sm font-medium text-gray-700 dark:text-gray-300 w-80">
+                    Unidad
+                  </th>
+                  <th className="px-6 py-4 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Fletes Asignados
+                  </th>
+                </tr>
+              </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {trucks.map((truck) => (
                 <tr key={truck.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
@@ -205,30 +243,24 @@ export function TruckList({ trucks }: TruckListProps) {
                     <div className="space-y-3">
                       {/* Existing Freight Cards */}
                       {freights[truck.id as keyof typeof freights]?.map((freight) => (
-                        <FreightCard key={freight.id} freight={freight} />
+                        <FreightCard
+                          key={freight.id}
+                          freight={freight}
+                          onEdit={() => setEditingFreight({ truckId: truck.id, freightId: freight.id })}
+                        />
                       ))}
 
-                      {/* Empty State - shown when no freights and not adding */}
-                      {!freights[truck.id as keyof typeof freights]?.length && addingFreightFor !== truck.id && (
-                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                          <Truck className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">Sin fletes asignados</p>
-                        </div>
-                      )}
-
-                      {/* Add Freight Form or Button - always at the bottom */}
-                      {addingFreightFor === truck.id ? (
-                        <AddFreightForm
-                          truckId={truck.id}
-                          truckName={truck.name}
-                          onSave={(newFreight) => handleAddFreight(truck.id, newFreight)}
-                          onCancel={() => setAddingFreightFor(null)}
-                        />
-                      ) : (
+                      {/* Add Freight Button - full width, full height when no freights */}
+                      {addingFreightFor !== truck.id && (
                         <Button
                           variant="outline"
                           onClick={() => setAddingFreightFor(truck.id)}
-                          className="w-full border-dashed border-2 border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
+                          className={cn(
+                            "w-full border-dashed border-2 border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer",
+                            !freights[truck.id as keyof typeof freights]?.length
+                              ? "h-32"
+                              : ""
+                          )}
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Agregar Flete
@@ -243,5 +275,34 @@ export function TruckList({ trucks }: TruckListProps) {
         </div>
       </CardContent>
     </Card>
+
+    {/* Modal Overlay for Add/Edit Freight Form - Fixed positioning to float over content */}
+    {(addingFreightFor || editingFreight) && (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+          <div className="flex-1 overflow-auto p-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {addingFreightFor && (
+              <AddFreightForm
+                truckId={addingFreightFor}
+                truckName={trucks.find(t => t.id === addingFreightFor)?.name || ""}
+                onSave={(newFreight) => handleAddFreight(addingFreightFor, newFreight)}
+                onCancel={() => setAddingFreightFor(null)}
+              />
+            )}
+            {editingFreight && (
+              <AddFreightForm
+                truckId={editingFreight.truckId}
+                truckName={trucks.find(t => t.id === editingFreight.truckId)?.name || ""}
+                initialData={getFreightForEditing(editingFreight.truckId, editingFreight.freightId)}
+                isEditing={true}
+                onSave={(updatedFreight) => handleEditFreight(editingFreight.truckId, editingFreight.freightId, updatedFreight)}
+                onCancel={() => setEditingFreight(null)}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   );
 }
