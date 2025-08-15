@@ -13,6 +13,13 @@ import {
   CamundaTextarea,
   CamundaCheckbox,
   CamundaFilepicker,
+  CamundaNumber,
+  CamundaDatetime,
+  CamundaExpression,
+  CamundaChecklist,
+  CamundaRadio,
+  CamundaSelect,
+  CamundaTaglist,
   type CamundaComponentType
 } from "./camunda";
 
@@ -22,6 +29,37 @@ interface CamundaFormComponent {
   label?: string;
   type: string;
   text?: string;
+  description?: string;
+  defaultValue?: any;
+  decimalDigits?: number;
+  increment?: string;
+  disabled?: boolean;
+  readonly?: string | boolean;
+  // Datetime specific properties
+  subtype?: "date" | "datetime" | "time";
+  dateLabel?: string;
+  disallowPassedDates?: boolean;
+  // Expression specific properties
+  expression?: string;
+  computeOn?: string;
+  // Filepicker specific properties
+  multiple?: string | boolean;
+  accept?: string;
+  // Checklist and Select specific properties
+  values?: Array<{ label: string; value: string }>;
+  valuesKey?: string;
+  valuesExpression?: string;
+  // Select specific properties
+  searchable?: boolean;
+  appearance?: {
+    prefixAdorner?: string;
+    suffixAdorner?: string;
+  };
+  validate?: {
+    required?: boolean;
+    min?: string | number;
+    max?: string | number;
+  };
   layout: {
     row: string;
     columns: null | number;
@@ -48,9 +86,10 @@ interface DynamicCamundaFormProps {
 
 export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormProps) {
   const fetchCamundaFormSchema = useAction(api.actions.fetchCamundaFormSchema);
+  const completeCamundaTask = useAction(api.actions.completeCamundaTask);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [formDefinition, setFormDefinition] = useState<CamundaFormDefinition | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -90,6 +129,24 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
   useEffect(() => {
     fetchFormSchema();
   }, [task._id]);
+
+  // Build Camunda variables format from form data
+  const buildFormVariables = () => {
+    const variables: Record<string, { value: any }> = {};
+
+    // Only include form fields that have a key (Camunda field key)
+    if (formDefinition?.components) {
+      formDefinition.components.forEach(component => {
+        if (component.key && formData.hasOwnProperty(component.id)) {
+          variables[component.key] = {
+            value: formData[component.id]
+          };
+        }
+      });
+    }
+
+    return variables;
+  };
 
   // Loading state
   if (loading) {
@@ -145,23 +202,22 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
     );
   }
 
-  const handleInputChange = (key: string, value: any) => {
+  const handleInputChange = (id: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [key]: value
+      [id]: value
     }));
   };
 
-  const handleFileChange = (key: string, file: File | null) => {
+  const handleFileChange = (id: string, value: File | File[] | null) => {
     setFormData(prev => ({
       ...prev,
-      [key]: file
+      [id]: value
     }));
   };
 
   const renderFormComponent = (component: CamundaFormComponent) => {
     const { id, key, label, type, text } = component;
-    const fieldKey = key || id;
 
     switch (type as CamundaComponentType) {
       case "text":
@@ -180,7 +236,7 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
             id={id}
             camundaKey={key}
             label={label}
-            value={formData[fieldKey] || ""}
+            value={formData[id] || ""}
             onChange={handleInputChange}
           />
         );
@@ -192,7 +248,7 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
             id={id}
             camundaKey={key}
             label={label}
-            value={formData[fieldKey] || ""}
+            value={formData[id] || ""}
             onChange={handleInputChange}
           />
         );
@@ -204,7 +260,7 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
             id={id}
             camundaKey={key}
             label={label}
-            value={formData[fieldKey] || false}
+            value={formData[id] || false}
             onChange={handleInputChange}
           />
         );
@@ -216,8 +272,146 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
             id={id}
             camundaKey={key}
             label={label}
-            value={formData[fieldKey] || null}
+            value={formData[id] || null}
+            required={component.validate?.required}
+            disabled={component.disabled}
+            accept={component.accept}
+            multiple={component.multiple === true || component.multiple === "on"}
             onChange={handleFileChange}
+          />
+        );
+
+      case "number":
+        return (
+          <CamundaNumber
+            key={id}
+            id={id}
+            camundaKey={key}
+            label={label}
+            description={component.description}
+            value={formData[id]}
+            defaultValue={component.defaultValue}
+            required={component.validate?.required}
+            disabled={component.disabled}
+            readonly={component.readonly === true || component.readonly === "on"}
+            min={typeof component.validate?.min === 'number' ? component.validate.min :
+                 typeof component.validate?.min === 'string' ? parseFloat(component.validate.min) : undefined}
+            max={typeof component.validate?.max === 'number' ? component.validate.max :
+                 typeof component.validate?.max === 'string' ? parseFloat(component.validate.max) : undefined}
+            step={component.increment ? parseFloat(component.increment) : undefined}
+            decimalDigits={component.decimalDigits}
+            prefixAdorner={component.appearance?.prefixAdorner}
+            suffixAdorner={component.appearance?.suffixAdorner}
+            onChange={handleInputChange}
+          />
+        );
+
+      case "datetime":
+        return (
+          <CamundaDatetime
+            key={id}
+            id={id}
+            camundaKey={key}
+            label={label}
+            dateLabel={component.dateLabel}
+            description={component.description}
+            subtype={component.subtype || "date"}
+            value={formData[id] || ""}
+            required={component.validate?.required}
+            disabled={component.disabled}
+            readonly={component.readonly === true || component.readonly === "on"}
+            disallowPassedDates={component.disallowPassedDates}
+            onChange={handleInputChange}
+          />
+        );
+
+      case "expression":
+        return (
+          <CamundaExpression
+            key={id}
+            id={id}
+            camundaKey={key}
+            expression={component.expression || ""}
+            formData={formData}
+            onChange={handleInputChange}
+          />
+        );
+
+      case "checklist":
+        return (
+          <CamundaChecklist
+            key={id}
+            id={id}
+            camundaKey={key}
+            label={label}
+            description={component.description}
+            values={component.values}
+            valuesKey={component.valuesKey}
+            valuesExpression={component.valuesExpression}
+            value={formData[id] || []}
+            required={component.validate?.required}
+            disabled={component.disabled}
+            formData={formData}
+            onChange={handleInputChange}
+          />
+        );
+
+      case "radio":
+        return (
+          <CamundaRadio
+            key={id}
+            id={id}
+            camundaKey={key}
+            label={label}
+            description={component.description}
+            values={component.values}
+            valuesKey={component.valuesKey}
+            valuesExpression={component.valuesExpression}
+            value={formData[id] || ""}
+            required={component.validate?.required}
+            disabled={component.disabled}
+            formData={formData}
+            onChange={handleInputChange}
+          />
+        );
+
+      case "select":
+        return (
+          <CamundaSelect
+            key={id}
+            id={id}
+            camundaKey={key}
+            label={label}
+            description={component.description}
+            values={component.values}
+            valuesKey={component.valuesKey}
+            valuesExpression={component.valuesExpression}
+            value={formData[id] || ""}
+            defaultValue={component.defaultValue}
+            searchable={component.searchable}
+            required={component.validate?.required}
+            disabled={component.disabled}
+            formData={formData}
+            onChange={handleInputChange}
+          />
+        );
+
+      case "taglist":
+        return (
+          <CamundaTaglist
+            key={id}
+            id={id}
+            camundaKey={key}
+            label={label}
+            description={component.description}
+            values={component.values}
+            valuesKey={component.valuesKey}
+            valuesExpression={component.valuesExpression}
+            value={formData[id] || []}
+            required={component.validate?.required}
+            disabled={component.disabled}
+            formData={formData}
+            onChange={handleInputChange}
           />
         );
 
@@ -234,21 +428,31 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     setUploading(true);
-    
+
     try {
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Complete the Camunda task
+      const result = await completeCamundaTask({
+        camundaId: task.camundaId || "",
+        camundaBaseUrl: process.env.NEXT_PUBLIC_CAMUNDA_BASE_URL || "",
+        authToken: process.env.NEXT_PUBLIC_CAMUNDA_AUTH_TOKEN || undefined,
+        variables: buildFormVariables()
+      });
+
+      // Check if the Camunda API call was successful
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to complete Camunda task');
+      }
+
       // Mark task as completed (only for non-permanent tasks)
       if (!task.permanent) {
         await toggleTask({ id: task._id });
       }
-      
+
       // Notify parent component
       onTaskComplete?.();
-      
+
       alert('Formulario enviado exitosamente');
     } catch (error) {
       console.error('Error submitting form:', error);

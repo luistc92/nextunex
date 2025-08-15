@@ -15,6 +15,9 @@ http.route({
       console.log(body)
 
       const { id, name, asignee, variables, processInstanceId, businessKey, candidateUsers, candidateGroups, processDefinitionId, eventName, priority, formKey, formRef, taskDefinitionKey } = body;
+      
+
+      
       if(eventName != "create"){
         return new Response(
           JSON.stringify({ sucess: true, message: `Event ${eventName} received, nothing created` }),

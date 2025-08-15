@@ -18,27 +18,7 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
   const regularTasks = tasks?.filter(task => !task.permanent) || [];
   const permanentTasks = tasks?.filter(task => task.permanent) || [];
 
-  const getTaskIcon = (type: string) => {
-    switch (type) {
-      case "subirReporteMovimientos":
-        return <FileText className="h-4 w-4" />;
-      case "freight":
-        return <Truck className="h-4 w-4" />;
-      default:
-        return <Circle className="h-4 w-4" />;
-    }
-  };
 
-  const getTaskTitle = (type: string) => {
-    switch (type) {
-      case "subirReporteMovimientos":
-        return "Subir Reporte de Movimientos";
-      case "freight":
-        return "Gestión de Fletes";
-      default:
-        return type;
-    }
-  };
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString("es-ES", {
@@ -50,22 +30,28 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
   };
 
   const pendingTasks = regularTasks.filter(task => !task.isCompleted);
-  const completedTasks = regularTasks.filter(task => task.isCompleted);
+
 
   return (
     <div className="h-full bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800">
       <div className="flex flex-col h-full">
+        {/* Top Bar - matches navbar height */}
+        <div className="bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+          <div className="px-6 py-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-50">
+              Tareas
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Gestión de tareas
+            </p>
+          </div>
+        </div>
 
-        
         {/* Task List */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {/* Pending Tasks */}
           {pendingTasks.length > 0 && (
             <div className="p-4">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
-                <Clock className="h-4 w-4 mr-2 text-orange-500" />
-                Pendientes ({pendingTasks.length})
-              </h3>
               <div className="space-y-2">
                 {pendingTasks.map((task) => (
                   <button
@@ -80,12 +66,9 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-3 flex-1 min-w-0">
-                        <div className="flex-shrink-0 mt-0.5 text-gray-400">
-                          {getTaskIcon(task.type)}
-                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                            {getTaskTitle(task.type)}
+                            {task.name}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {formatDate(task.createdAt || task._creationTime)}
@@ -105,43 +88,10 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
             </div>
           )}
 
-          {/* Completed Tasks */}
-          {completedTasks.length > 0 && (
-            <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
-                <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
-                Completadas ({completedTasks.length})
-              </h3>
-              <div className="space-y-2">
-                {completedTasks.slice(0, 5).map((task) => (
-                  <div
-                    key={task._id}
-                    className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 opacity-75"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-3 flex-1 min-w-0">
-                        <div className="flex-shrink-0 mt-0.5 text-gray-400">
-                          {getTaskIcon(task.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate line-through">
-                            {getTaskTitle(task.type)}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                            {formatDate(task.createdAt || task._creationTime)}
-                          </p>
-                        </div>
-                      </div>
-                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
 
           {/* Empty State */}
-          {pendingTasks.length === 0 && completedTasks.length === 0 && (
+          {pendingTasks.length === 0 && (
             <div className="p-8 text-center">
               <Circle className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -172,15 +122,9 @@ export function TaskSidebar({ selectedTaskId, onTaskSelect }: TaskSidebarProps) 
                 )}
               >
                 <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 mt-0.5 text-blue-600">
-                    {getTaskIcon(task.type)}
-                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                      {getTaskTitle(task.type)}
-                    </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      Siempre disponible
+                      {task.name}
                     </p>
                   </div>
                 </div>
