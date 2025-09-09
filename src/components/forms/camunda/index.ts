@@ -11,6 +11,7 @@ export { CamundaChecklist } from "./CamundaChecklist";
 export { CamundaRadio } from "./CamundaRadio";
 export { CamundaSelect } from "./CamundaSelect";
 export { CamundaTaglist } from "./CamundaTaglist";
+export { CamundaGroup } from "./CamundaGroup";
 
 // Component mapping for dynamic rendering
 export const CAMUNDA_COMPONENT_MAP = {
@@ -25,7 +26,9 @@ export const CAMUNDA_COMPONENT_MAP = {
   checklist: "CamundaChecklist",
   radio: "CamundaRadio",
   select: "CamundaSelect",
-  taglist: "CamundaTaglist"
+  taglist: "CamundaTaglist",
+  group: "CamundaGroup",
+  dynamiclist: "CamundaDynamicList"
 } as const;
 
 export type CamundaComponentType = keyof typeof CAMUNDA_COMPONENT_MAP;

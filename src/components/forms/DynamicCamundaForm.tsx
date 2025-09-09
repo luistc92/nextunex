@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAction, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
   CamundaRadio,
   CamundaSelect,
   CamundaTaglist,
+  CamundaGroup,
   type CamundaComponentType
 } from "./camunda";
 
@@ -64,6 +65,16 @@ interface CamundaFormComponent {
     row: string;
     columns: null | number;
   };
+  // Group specific properties
+  components?: CamundaFormComponent[];
+  path?: string;
+  showOutline?: boolean;
+  // External data properties
+  properties?: {
+    externalData?: string;
+    [key: string]: any;
+  };
+  externalDataResult?: any;
 }
 
 interface CamundaFormDefinition {
@@ -85,13 +96,41 @@ interface DynamicCamundaFormProps {
 }
 
 export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormProps) {
+
   const fetchCamundaFormSchema = useAction(api.actions.fetchCamundaFormSchema);
   const completeCamundaTask = useAction(api.actions.completeCamundaTask);
+  const generateUploadUrl = useMutation(api.internalAPI.files.generateUploadUrl);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [formDefinition, setFormDefinition] = useState<CamundaFormDefinition | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Track the last fetched task ID to prevent unnecessary re-fetches
+  const lastFetchedTaskId = useRef<string | null>(null);
+
+  console.log(task.variables)
+
+    // Helper function to flatten nested variables for form initialization
+  const flattenVariables = (variables: Record<string, any>, prefix = ''): Record<string, any> => {
+    const flattened: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(variables)) {
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+
+      if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof File)) {
+        // If it's a nested object, flatten it recursively
+        Object.assign(flattened, flattenVariables(value, fullKey));
+      } else {
+        // It's a primitive value, file, or array
+        flattened[fullKey] = value;
+      }
+    }
+
+    return flattened;
+  };
+
+
 
   const toggleTask = useMutation(api.internalAPI.tasks.toggleTask);
 
@@ -109,8 +148,7 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
 
       const result = await fetchCamundaFormSchema({
         camundaId: task.camundaId,
-        camundaBaseUrl: process.env.NEXT_PUBLIC_CAMUNDA_BASE_URL || "",
-        authToken: process.env.NEXT_PUBLIC_CAMUNDA_AUTH_TOKEN || undefined
+        variables: task.variables
       });
 
       if (result.success && result.data) {
@@ -127,25 +165,138 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
 
   // Fetch form schema on component mount
   useEffect(() => {
-    fetchFormSchema();
+    // Only fetch if the task ID has actually changed
+    if (lastFetchedTaskId.current !== task._id) {
+      lastFetchedTaskId.current = task._id;
+      fetchFormSchema();
+      console.log('Initializing form data with task variables:', task.variables);
+      const flattenedVariables = flattenVariables(task.variables);
+      console.log('Flattened variables for form:', flattenedVariables);
+      setFormData(flattenedVariables);
+    } 
   }, [task._id]);
 
-  // Build Camunda variables format from form data
-  const buildFormVariables = () => {
-    const variables: Record<string, { value: any }> = {};
+  //Function to upload a file to convex storage
+  const uploadFile = async  (file: File) =>{
+      // Step 1: Get a short-lived upload URL
+    const uploadUrl = await generateUploadUrl();
+    // Step 2: POST the file to the URL
+    const result = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": file!.type },
+      body: file,
+    });
+    const { storageId } = await result.json();
 
-    // Only include form fields that have a key (Camunda field key)
-    if (formDefinition?.components) {
-      formDefinition.components.forEach(component => {
-        if (component.key && formData.hasOwnProperty(component.id)) {
-          variables[component.key] = {
-            value: formData[component.id]
-          };
+    return storageId;
+    }
+
+  // Helper function to process components recursively
+  const processComponentsRecursively = async (
+    components: CamundaFormComponent[],
+    currentPath: string = ""
+  ): Promise<Record<string, { value: any; type?: string }>> => {
+    const variables: Record<string, { value: any; type?: string }> = {};
+
+    for (const component of components) {
+      if (component.type === "group") {
+        // Handle group components
+        if (component.components && component.components.length > 0) {
+          const groupPath = component.path ?
+            (currentPath ? `${currentPath}.${component.path}` : component.path) :
+            currentPath;
+
+          const groupVariables = await processComponentsRecursively(component.components, groupPath);
+
+          if (component.path) {
+            // If group has a path, nest the variables under that path
+            variables[component.path] = {
+              value: Object.fromEntries(
+                Object.entries(groupVariables).map(([key, val]) => [key, val.value])
+              )
+            };
+          } else {
+            // If no path, merge variables at current level
+            Object.assign(variables, groupVariables);
+          }
         }
-      });
+      } else if (component.key) {
+        // Handle regular components with keys
+        const fullPath = currentPath ? `${currentPath}.${component.key}` : component.key;
+        const value = getNestedValue(formData, fullPath);
+
+        if (value !== undefined) {
+          // Check if the value is a File object or array of File objects
+          if (value instanceof File) {
+            // Single file
+            const storageId: string | null = await uploadFile(value);
+            if (storageId) {
+              variables[component.key] = {
+                value: storageId
+              };
+            }
+          } else if (Array.isArray(value) && value.length > 0 && value[0] instanceof File) {
+            // Array of files - store each file and collect storage IDs
+            const storageIds: string[] = [];
+            for (const file of value) {
+              if (file instanceof File) {
+                const storageId: string | null = await uploadFile(file);
+                if (storageId) {
+                  storageIds.push(storageId);
+                }
+              }
+            }
+            if (storageIds.length > 0) {
+              variables[component.key] = {
+                value: storageIds
+              };
+            }
+          } else {
+            // Regular form field
+            variables[component.key] = {
+              value: value
+            };
+          }
+        }
+      }
     }
 
     return variables;
+  };
+
+  // Build Camunda variables format from form data
+  const buildFormVariablesandFiles = async () => {
+    const variables = formDefinition?.components ?
+      await processComponentsRecursively(formDefinition.components) :
+      {};
+
+    // Inject external data results as variables for dynamic lists
+    if (formDefinition?.components) {
+      console.log("Injecting external data as variables...");
+      injectExternalDataAsVariables(formDefinition.components, variables);
+    }
+
+    console.log("las variables son", variables);
+    return { variables };
+  };
+
+  // Helper function to inject external data results as variables
+  const injectExternalDataAsVariables = (components: CamundaFormComponent[], variables: Record<string, { value: any; type?: string }>) => {
+    for (const component of components) {
+      // Handle nested components (like groups)
+      if (component.components && component.components.length > 0) {
+        injectExternalDataAsVariables(component.components, variables);
+      }
+
+      // Check if component has external data result and should be injected as a variable
+      if (component.externalDataResult && component.key) {
+        // For components like "recorridosAnteriores", inject the external data as a variable
+        variables[component.key] = {
+          value: component.externalDataResult
+        };
+        console.log(`Injected external data as variable ${component.key}:`, component.externalDataResult);
+      }
+    }
   };
 
   // Loading state
@@ -202,22 +353,84 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
     );
   }
 
-  const handleInputChange = (id: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [id]: value
-    }));
+  // Helper function to set nested values in form data
+  const setNestedValue = (obj: Record<string, any>, path: string, value: any): Record<string, any> => {
+    const keys = path.split('.').filter(k => k.length > 0);
+    const result = { ...obj };
+    let current = result;
+
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i]!;
+      if (!(key in current) || typeof current[key] !== 'object' || current[key] === null) {
+        current[key] = {};
+      } else {
+        current[key] = { ...current[key] };
+      }
+      current = current[key];
+    }
+
+    const lastKey = keys[keys.length - 1]!;
+    current[lastKey] = value;
+    return result;
   };
 
-  const handleFileChange = (id: string, value: File | File[] | null) => {
-    setFormData(prev => ({
-      ...prev,
-      [id]: value
-    }));
+  // Helper function to get nested values from form data
+  const getNestedValue = (obj: Record<string, any>, path: string): any => {
+    const keys = path.split('.').filter(k => k.length > 0);
+    let current = obj;
+
+    for (const key of keys) {
+      if (current && typeof current === 'object' && key in current) {
+        current = current[key];
+      } else {
+        return undefined;
+      }
+    }
+
+    return current;
   };
 
-  const renderFormComponent = (component: CamundaFormComponent) => {
+  const handleInputChange = (camundaKey: string, value: any, groupPath?: string) => {
+    setFormData(prev => {
+      if (groupPath) {
+        // Handle nested group data
+        const fullPath = `${groupPath}.${camundaKey}`;
+        return setNestedValue(prev, fullPath, value);
+      } else {
+        // Handle top-level data
+        return {
+          ...prev,
+          [camundaKey]: value
+        };
+      }
+    });
+  };
+
+  const handleFileChange = (camundaKey: string, value: File | File[] | null, groupPath?: string) => {
+    console.log("DynamicCamundaForm - File change:", camundaKey, value);
+    setFormData(prev => {
+      if (groupPath) {
+        // Handle nested group data
+        const fullPath = `${groupPath}.${camundaKey}`;
+        const newData = setNestedValue(prev, fullPath, value);
+        console.log("DynamicCamundaForm - New nested form data:", newData);
+        return newData;
+      } else {
+        // Handle top-level data
+        const newData = {
+          ...prev,
+          [camundaKey]: value
+        };
+        console.log("DynamicCamundaForm - New form data:", newData);
+        return newData;
+      }
+    });
+  };
+
+  const renderFormComponent = (component: CamundaFormComponent, groupPath?: string): React.ReactNode => {
     const { id, key, label, type, text } = component;
+
+    const camundaKey = key || "";
 
     switch (type as CamundaComponentType) {
       case "text":
@@ -234,10 +447,10 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
           <CamundaTextfield
             key={id}
             id={id}
-            camundaKey={key}
+            camundaKey={camundaKey}
             label={label}
-            value={formData[id] || ""}
-            onChange={handleInputChange}
+            value={getNestedValue(formData, groupPath ? `${groupPath}.${camundaKey}` : camundaKey) || ""}
+            onChange={(key, value) => handleInputChange(key, value, groupPath)}
           />
         );
 
@@ -246,10 +459,10 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
           <CamundaTextarea
             key={id}
             id={id}
-            camundaKey={key}
+            camundaKey={camundaKey}
             label={label}
-            value={formData[id] || ""}
-            onChange={handleInputChange}
+            value={getNestedValue(formData, groupPath ? `${groupPath}.${camundaKey}` : camundaKey) || ""}
+            onChange={(key, value) => handleInputChange(key, value, groupPath)}
           />
         );
 
@@ -258,10 +471,10 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
           <CamundaCheckbox
             key={id}
             id={id}
-            camundaKey={key}
+            camundaKey={camundaKey}
             label={label}
-            value={formData[id] || false}
-            onChange={handleInputChange}
+            value={getNestedValue(formData, groupPath ? `${groupPath}.${camundaKey}` : camundaKey) || false}
+            onChange={(key, value) => handleInputChange(key, value, groupPath)}
           />
         );
 
@@ -270,14 +483,14 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
           <CamundaFilepicker
             key={id}
             id={id}
-            camundaKey={key}
+            camundaKey={camundaKey}
             label={label}
-            value={formData[id] || null}
+            value={getNestedValue(formData, groupPath ? `${groupPath}.${camundaKey}` : camundaKey) || null}
             required={component.validate?.required}
             disabled={component.disabled}
             accept={component.accept}
             multiple={component.multiple === true || component.multiple === "on"}
-            onChange={handleFileChange}
+            onChange={(key, value) => handleFileChange(key, value, groupPath)}
           />
         );
 
@@ -286,10 +499,10 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
           <CamundaNumber
             key={id}
             id={id}
-            camundaKey={key}
+            camundaKey={camundaKey}
             label={label}
             description={component.description}
-            value={formData[id]}
+            value={getNestedValue(formData, groupPath ? `${groupPath}.${camundaKey}` : camundaKey)}
             defaultValue={component.defaultValue}
             required={component.validate?.required}
             disabled={component.disabled}
@@ -302,7 +515,7 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
             decimalDigits={component.decimalDigits}
             prefixAdorner={component.appearance?.prefixAdorner}
             suffixAdorner={component.appearance?.suffixAdorner}
-            onChange={handleInputChange}
+            onChange={(key, value) => handleInputChange(key, value, groupPath)}
           />
         );
 
@@ -311,17 +524,17 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
           <CamundaDatetime
             key={id}
             id={id}
-            camundaKey={key}
+            camundaKey={camundaKey}
             label={label}
             dateLabel={component.dateLabel}
             description={component.description}
             subtype={component.subtype || "date"}
-            value={formData[id] || ""}
+            value={getNestedValue(formData, groupPath ? `${groupPath}.${camundaKey}` : camundaKey) || ""}
             required={component.validate?.required}
             disabled={component.disabled}
             readonly={component.readonly === true || component.readonly === "on"}
             disallowPassedDates={component.disallowPassedDates}
-            onChange={handleInputChange}
+            onChange={(key, value) => handleInputChange(key, value, groupPath)}
           />
         );
 
@@ -330,10 +543,10 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
           <CamundaExpression
             key={id}
             id={id}
-            camundaKey={key}
+            camundaKey={camundaKey}
             expression={component.expression || ""}
             formData={formData}
-            onChange={handleInputChange}
+            onChange={(key, value) => handleInputChange(key, value, groupPath)}
           />
         );
 
@@ -342,17 +555,17 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
           <CamundaChecklist
             key={id}
             id={id}
-            camundaKey={key}
+            camundaKey={camundaKey}
             label={label}
             description={component.description}
             values={component.values}
             valuesKey={component.valuesKey}
             valuesExpression={component.valuesExpression}
-            value={formData[id] || []}
+            value={getNestedValue(formData, groupPath ? `${groupPath}.${camundaKey}` : camundaKey) || []}
             required={component.validate?.required}
             disabled={component.disabled}
             formData={formData}
-            onChange={handleInputChange}
+            onChange={(key, value) => handleInputChange(key, value, groupPath)}
           />
         );
 
@@ -361,17 +574,17 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
           <CamundaRadio
             key={id}
             id={id}
-            camundaKey={key}
+            camundaKey={camundaKey}
             label={label}
             description={component.description}
             values={component.values}
             valuesKey={component.valuesKey}
             valuesExpression={component.valuesExpression}
-            value={formData[id] || ""}
+            value={getNestedValue(formData, groupPath ? `${groupPath}.${camundaKey}` : camundaKey) || ""}
             required={component.validate?.required}
             disabled={component.disabled}
             formData={formData}
-            onChange={handleInputChange}
+            onChange={(key, value) => handleInputChange(key, value, groupPath)}
           />
         );
 
@@ -380,19 +593,19 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
           <CamundaSelect
             key={id}
             id={id}
-            camundaKey={key}
+            camundaKey={camundaKey}
             label={label}
             description={component.description}
             values={component.values}
             valuesKey={component.valuesKey}
             valuesExpression={component.valuesExpression}
-            value={formData[id] || ""}
+            value={getNestedValue(formData, groupPath ? `${groupPath}.${camundaKey}` : camundaKey) || ""}
             defaultValue={component.defaultValue}
             searchable={component.searchable}
             required={component.validate?.required}
             disabled={component.disabled}
             formData={formData}
-            onChange={handleInputChange}
+            onChange={(key, value) => handleInputChange(key, value, groupPath)}
           />
         );
 
@@ -401,18 +614,46 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
           <CamundaTaglist
             key={id}
             id={id}
-            camundaKey={key}
+            camundaKey={camundaKey}
             label={label}
             description={component.description}
             values={component.values}
             valuesKey={component.valuesKey}
             valuesExpression={component.valuesExpression}
-            value={formData[id] || []}
+            value={getNestedValue(formData, groupPath ? `${groupPath}.${camundaKey}` : camundaKey) || []}
             required={component.validate?.required}
             disabled={component.disabled}
             formData={formData}
-            onChange={handleInputChange}
+            onChange={(key, value) => handleInputChange(key, value, groupPath)}
           />
+        );
+
+      case "group":
+        return (
+          <CamundaGroup
+            key={id}
+            id={id}
+            label={label}
+            components={component.components || []}
+            path={component.path}
+            showOutline={component.showOutline}
+            formData={formData}
+            renderComponent={(childComponent) =>
+              renderFormComponent(childComponent, component.path ?
+                (groupPath ? `${groupPath}.${component.path}` : component.path) :
+                groupPath
+              )
+            }
+          />
+        );
+
+      case "dynamiclist":
+        return (
+          <div key={id} className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              Componente "dynamiclist" no implementado aún: {label || id}
+            </p>
+          </div>
         );
 
       default:
@@ -433,12 +674,14 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
 
     try {
       // Complete the Camunda task
+      console.log("aqui antes")
+      const variablesAndFiles = await buildFormVariablesandFiles()
       const result = await completeCamundaTask({
         camundaId: task.camundaId || "",
-        camundaBaseUrl: process.env.NEXT_PUBLIC_CAMUNDA_BASE_URL || "",
-        authToken: process.env.NEXT_PUBLIC_CAMUNDA_AUTH_TOKEN || undefined,
-        variables: buildFormVariables()
+        variables: variablesAndFiles.variables,
       });
+
+      console.log("aqui despues")
 
       // Check if the Camunda API call was successful
       if (!result.success) {
@@ -502,3 +745,4 @@ export function DynamicCamundaForm({ task, onTaskComplete }: DynamicCamundaFormP
     </Card>
   );
 }
+

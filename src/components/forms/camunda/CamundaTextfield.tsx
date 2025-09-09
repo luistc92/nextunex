@@ -3,13 +3,13 @@ import { Input } from "@/components/ui/input";
 
 interface CamundaTextfieldProps {
   id: string;
-  camundaKey?: string;
+  camundaKey: string;
   label?: string;
   placeholder?: string;
   value?: string;
   required?: boolean;
   disabled?: boolean;
-  onChange: (key: string, value: string) => void;
+  onChange: (camundaKey: string, value: string) => void;
   className?: string;
 }
 
@@ -24,7 +24,9 @@ export function CamundaTextfield({
   onChange,
   className = ""
 }: CamundaTextfieldProps) {
-  const inputKey = camundaKey || id;
+  if (!camundaKey) {
+    throw new Error(`CamundaTextfield with id "${id}" is missing required camundaKey prop`);
+  }
 
   return (
     <div className={`mb-4 ${className}`}>
@@ -36,7 +38,7 @@ export function CamundaTextfield({
       )}
       <Input
         value={value}
-        onChange={(e) => onChange(inputKey, e.target.value)}
+        onChange={(e) => onChange(camundaKey, e.target.value)}
         placeholder={placeholder || label}
         required={required}
         disabled={disabled}

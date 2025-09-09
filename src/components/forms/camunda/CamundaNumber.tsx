@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 
 interface CamundaNumberProps {
   id: string;
-  camundaKey?: string;
+  camundaKey: string;
   label?: string;
   description?: string;
   value?: number;
@@ -17,7 +17,7 @@ interface CamundaNumberProps {
   decimalDigits?: number;
   prefixAdorner?: string;
   suffixAdorner?: string;
-  onChange: (key: string, value: number) => void;
+  onChange: (camundaKey: string, value: number) => void;
   className?: string;
 }
 
@@ -40,15 +40,17 @@ export function CamundaNumber({
   onChange,
   className = ""
 }: CamundaNumberProps) {
-  const inputKey = camundaKey || id;
+  if (!camundaKey) {
+    throw new Error(`CamundaNumber with id "${id}" is missing required camundaKey prop`);
+  }
   const currentValue = value ?? defaultValue ?? 0;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = parseFloat(e.target.value);
     if (!isNaN(newValue)) {
-      onChange(inputKey, newValue);
+      onChange(camundaKey, newValue);
     } else if (e.target.value === "") {
-      onChange(inputKey, 0);
+      onChange(camundaKey, 0);
     }
   };
 

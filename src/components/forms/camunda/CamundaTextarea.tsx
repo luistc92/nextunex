@@ -3,14 +3,14 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface CamundaTextareaProps {
   id: string;
-  camundaKey?: string;
+  camundaKey: string;
   label?: string;
   placeholder?: string;
   value?: string;
   required?: boolean;
   disabled?: boolean;
   rows?: number;
-  onChange: (key: string, value: string) => void;
+  onChange: (camundaKey: string, value: string) => void;
   className?: string;
 }
 
@@ -26,7 +26,9 @@ export function CamundaTextarea({
   onChange,
   className = ""
 }: CamundaTextareaProps) {
-  const inputKey = camundaKey || id;
+  if (!camundaKey) {
+    throw new Error(`CamundaTextarea with id "${id}" is missing required camundaKey prop`);
+  }
 
   return (
     <div className={`mb-4 ${className}`}>
@@ -38,7 +40,7 @@ export function CamundaTextarea({
       )}
       <Textarea
         value={value}
-        onChange={(e) => onChange(inputKey, e.target.value)}
+        onChange={(e) => onChange(camundaKey, e.target.value)}
         placeholder={placeholder || label}
         required={required}
         disabled={disabled}

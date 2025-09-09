@@ -3,12 +3,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 interface CamundaCheckboxProps {
   id: string;
-  camundaKey?: string;
+  camundaKey: string;
   label?: string;
   value?: boolean;
   required?: boolean;
   disabled?: boolean;
-  onChange: (key: string, value: boolean) => void;
+  onChange: (camundaKey: string, value: boolean) => void;
   className?: string;
 }
 
@@ -22,7 +22,9 @@ export function CamundaCheckbox({
   onChange,
   className = ""
 }: CamundaCheckboxProps) {
-
+  if (!camundaKey) {
+    throw new Error(`CamundaCheckbox with id "${id}" is missing required camundaKey prop`);
+  }
 
   return (
     <div className={`mb-4 ${className}`}>
@@ -30,7 +32,7 @@ export function CamundaCheckbox({
         <Checkbox
           id={id}
           checked={value}
-          onCheckedChange={(checked) => onChange(id, !!checked)}
+          onCheckedChange={(checked) => onChange(camundaKey, !!checked)}
           required={required}
           disabled={disabled}
         />

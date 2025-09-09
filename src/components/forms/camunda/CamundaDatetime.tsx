@@ -1,9 +1,13 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Input } from "@/components/ui/input";
+
+interface CamundaDatetimeProperties {
+  default?: string;
+}
 
 interface CamundaDatetimeProps {
   id: string;
-  camundaKey?: string;
+  camundaKey: string;
   label?: string;
   dateLabel?: string;
   description?: string;
@@ -13,7 +17,8 @@ interface CamundaDatetimeProps {
   disabled?: boolean;
   readonly?: boolean;
   disallowPassedDates?: boolean;
-  onChange: (key: string, value: string) => void;
+  properties?: CamundaDatetimeProperties;
+  onChange: (camundaKey: string, value: string) => void;
   className?: string;
 }
 
@@ -29,11 +34,39 @@ export function CamundaDatetime({
   disabled = false,
   readonly = false,
   disallowPassedDates = false,
+  properties,
   onChange,
   className = ""
 }: CamundaDatetimeProps) {
-  const inputKey = camundaKey || id;
+  if (!camundaKey) {
+    throw new Error(`CamundaDatetime with id "${id}" is missing required camundaKey prop`);
+  }
   const displayLabel = dateLabel || label;
+
+  // Generate current date/time value based on subtype
+  const getCurrentValue = () => {
+    const now = new Date();
+    switch (subtype) {
+      case "date":
+        return now.toISOString().split('T')[0];
+      case "datetime":
+        return now.toISOString().slice(0, 16);
+      case "time":
+        return now.toTimeString().slice(0, 5);
+      default:
+        return "";
+    }
+  };
+
+  // Handle default "now" value
+  useEffect(() => {
+    if (properties?.default === "now" && !value) {
+      const currentValue = getCurrentValue();
+      if (currentValue) {
+        onChange(camundaKey, currentValue);
+      }
+    }
+  }, [properties?.default, value, camundaKey, onChange, subtype]);
 
   // Determine the input type based on subtype
   const getInputType = () => {
@@ -81,7 +114,7 @@ export function CamundaDatetime({
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(inputKey, e.target.value);
+    onChange(camundaKey, e.target.value);
   };
 
   return (
